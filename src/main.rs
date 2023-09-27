@@ -73,43 +73,53 @@ async fn main() -> Result<()> {
     let mut last_ipv4 = None;
     let mut last_ipv6 = None;
     loop {
-        let (ipv4, ipv6) = get_ips().await?;
-        if let Some(ipv4) = &ipv4 {
-            log::info!("Current IPv4 address: {ipv4}");
+        if let Err(error) = dyndns(&args, &client, &mut last_ipv4, &mut last_ipv6).await {
+            log::error!("{error:?}");
         }
-        if let Some(ipv6) = &ipv6 {
-            log::info!("Current IPv6 address: {ipv6}");
-        }
-
-        if args.ipv4 && ipv4 != last_ipv4 {
-            let Some(ipv4) = &ipv4 else {
-                log::warn!("No IPv4 address found");
-                continue;
-            };
-
-            handle_a_record(&args, ipv4, &client)
-                .await
-                .context("Failed to update or create A record")?;
-        }
-
-        if args.ipv6 && ipv6 != last_ipv6 {
-            let Some(ipv6) = &ipv6 else {
-                log::warn!("No IPv6 address found");
-                continue;
-            };
-
-            handle_aaaa_record(&args, ipv6, &client)
-                .await
-                .context("Failed to update or create AAAA record")?;
-        }
-
-        last_ipv4 = ipv4;
-        last_ipv6 = ipv6;
 
         if args.once {
             break;
         } else {
             sleep(sleep_interval).await;
+        }
+    }
+
+    Ok(())
+}
+
+async fn dyndns(
+    args: &Args,
+    client: &ApiClient,
+    last_ipv4: &mut Option<Ipv4Addr>,
+    last_ipv6: &mut Option<Ipv6Addr>,
+) -> Result<()> {
+    let (ipv4, ipv6) = get_ips().await.context("Failed to get IP addresses")?;
+    if let Some(ipv4) = &ipv4 {
+        log::info!("Current IPv4 address: {ipv4}");
+    }
+    if let Some(ipv6) = &ipv6 {
+        log::info!("Current IPv6 address: {ipv6}");
+    }
+
+    if args.ipv4 && &ipv4 != last_ipv4 {
+        if let Some(ipv4) = &ipv4 {
+            handle_a_record(args, ipv4, client)
+                .await
+                .context("Failed to update or create A record")?;
+            *last_ipv4 = Some(*ipv4);
+        } else {
+            log::warn!("No IPv4 address found");
+        }
+    }
+
+    if args.ipv6 && &ipv6 != last_ipv6 {
+        if let Some(ipv6) = &ipv6 {
+            handle_aaaa_record(args, ipv6, client)
+                .await
+                .context("Failed to update or create AAAA record")?;
+            *last_ipv6 = Some(*ipv6);
+        } else {
+            log::warn!("No IPv6 address found");
         }
     }
 
