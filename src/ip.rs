@@ -25,6 +25,10 @@ pub async fn get_ips() -> Result<(Option<Ipv4Addr>, Option<Ipv6Addr>)> {
             } else if let Ok(address) = address.parse::<Ipv6Addr>() {
                 ipv6.get_or_insert(address);
             }
+
+            if ipv4.is_some() && ipv6.is_some() {
+                return Ok((ipv4, ipv6));
+            }
         }
     }
 
