@@ -49,7 +49,7 @@ struct Args {
     domain: String,
 }
 
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
     if std::env::var_os("RUST_LOG").is_none() {
         std::env::set_var("RUST_LOG", format!("{}=info", env!("CARGO_PKG_NAME")));
@@ -57,17 +57,22 @@ async fn main() -> Result<()> {
     env_logger::init();
 
     let args = Args::parse();
-    let token = get_token()?;
-
     if !args.ipv4 && !args.ipv6 {
         bail!("At least one of -4 or -6 must be specified");
     }
+    if args.ttl == 0 {
+        bail!("TTL must be greater than 0");
+    }
+    if args.sleep_interval == 0 {
+        bail!("Sleep interval must be greater than 0");
+    }
 
+    let token = get_token()?;
     let client = ApiClient::new(&token);
-
     let sleep_interval = Duration::from_secs(args.sleep_interval);
-    let mut running = true;
-    while running {
+    let mut last_ipv4 = None;
+    let mut last_ipv6 = None;
+    loop {
         let (ipv4, ipv6) = get_ips().await?;
         if let Some(ipv4) = &ipv4 {
             log::info!("Current IPv4 address: {ipv4}");
@@ -76,7 +81,7 @@ async fn main() -> Result<()> {
             log::info!("Current IPv6 address: {ipv6}");
         }
 
-        if args.ipv4 {
+        if args.ipv4 && ipv4 != last_ipv4 {
             let Some(ipv4) = &ipv4 else {
                 log::warn!("No IPv4 address found");
                 continue;
@@ -87,7 +92,7 @@ async fn main() -> Result<()> {
                 .context("Failed to update or create A record")?;
         }
 
-        if args.ipv6 {
+        if args.ipv6 && ipv6 != last_ipv6 {
             let Some(ipv6) = &ipv6 else {
                 log::warn!("No IPv6 address found");
                 continue;
@@ -98,8 +103,11 @@ async fn main() -> Result<()> {
                 .context("Failed to update or create AAAA record")?;
         }
 
+        last_ipv4 = ipv4;
+        last_ipv6 = ipv6;
+
         if args.once {
-            running = false;
+            break;
         } else {
             sleep(sleep_interval).await;
         }
