@@ -131,65 +131,46 @@ fn get_token() -> Result<String> {
 }
 
 async fn handle_a_record(args: &Args, addr: &Ipv4Addr, client: &ApiClient) -> Result<()> {
-    let records = client
-        .get_records(&args.domain, Some(200), Some("A"))
-        .await
-        .context("Failed to get A records")?;
-
-    let name = &args.subdomain;
-    let kind = "A";
-    let data = addr.to_string();
-    let ttl = args.ttl;
-    match records.len() {
-        0 => create_record(client, args, name, kind, &data, ttl)
-            .await
-            .context("Failed to create A record")?,
-        1 => {
-            let record = records.first().unwrap();
-            if record.data == data {
-                log::info!("A record is up to date");
-                return Ok(());
-            }
-
-            update_record(client, args, record.id, name, kind, &data, ttl)
-                .await
-                .context("Failed to update A record")?;
-        }
-        _ => {
-            bail!("More than one A record found");
-        }
-    }
-
-    Ok(())
+    handle_record(args, "A", &addr.to_string(), client).await
 }
 
 async fn handle_aaaa_record(args: &Args, addr: &Ipv6Addr, client: &ApiClient) -> Result<()> {
+    handle_record(args, "AAAA", &addr.to_string(), client).await
+}
+
+async fn handle_record(args: &Args, kind: &str, addr: &str, client: &ApiClient) -> Result<()> {
+    let name_filter = match args.subdomain.as_str() {
+        "@" => Some(args.domain.clone()),
+        name => Some(format!("{name}.{}", args.domain)),
+    };
     let records = client
-        .get_records(&args.domain, Some(200), Some("AAAA"))
+        .get_records(&args.domain, Some(200), Some(kind), name_filter.as_deref())
         .await
-        .context("Failed to get AAAA records")?;
+        .with_context(|| format!("Failed to get {kind} records"))?
+        .into_iter()
+        .filter(|record| record.name == args.subdomain)
+        .collect::<Vec<_>>();
 
     let name = &args.subdomain;
-    let kind = "AAAA";
     let data = addr.to_string();
     let ttl = args.ttl;
     match records.len() {
         0 => create_record(client, args, name, kind, &data, ttl)
             .await
-            .context("Failed to create AAAA record")?,
+            .with_context(|| format!("Failed to create {kind} record"))?,
         1 => {
             let record = records.first().unwrap();
             if record.data == data {
-                log::info!("AAAA record is up to date");
+                log::info!("{kind} record is up to date");
                 return Ok(());
             }
 
             update_record(client, args, record.id, name, kind, &data, ttl)
                 .await
-                .context("Failed to update AAAA record")?;
+                .with_context(|| format!("Failed to update {kind} record"))?;
         }
         _ => {
-            bail!("More than one AAAA record found");
+            bail!("More than one {kind} record found");
         }
     }
 

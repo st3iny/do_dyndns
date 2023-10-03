@@ -28,8 +28,9 @@ enum DomainRecordsResponse {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DomainRecord {
     pub id: i64,
-    pub ttl: i32,
+    pub name: String,
     pub data: String,
+    pub ttl: i32,
 
     #[serde(rename = "type")]
     pub kind: String,
@@ -67,6 +68,7 @@ impl ApiClient {
         domain: &str,
         per_page: Option<u16>,
         kind: Option<&str>,
+        name: Option<&str>,
     ) -> Result<Vec<DomainRecord>> {
         let mut url = format!("https://api.digitalocean.com/v2/domains/{domain}/records");
 
@@ -76,6 +78,9 @@ impl ApiClient {
         }
         if let Some(kind) = kind {
             params.push(format!("type={kind}"));
+        }
+        if let Some(name) = name {
+            params.push(format!("name={name}"));
         }
         if !params.is_empty() {
             url.push('?');
