@@ -14,9 +14,7 @@ enum DomainRecordResponse {
 enum DomainRecordsResponse {
     Ok {
         domain_records: Vec<DomainRecord>,
-
         links: serde_json::Value,
-
         meta: serde_json::Value,
     },
     Error {
