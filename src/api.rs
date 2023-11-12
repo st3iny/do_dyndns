@@ -108,8 +108,8 @@ impl ApiClient {
         &self,
         domain: &str,
         id: i64,
-        kind: &str,
         name: &str,
+        kind: &str,
         data: &str,
         ttl: u32,
     ) -> Result<DomainRecord> {
