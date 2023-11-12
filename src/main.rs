@@ -95,14 +95,15 @@ async fn dyndns(
 ) -> Result<()> {
     let (ipv4, ipv6) = get_ips().await.context("Failed to get IP addresses")?;
     if let Some(ipv4) = &ipv4 {
-        log::info!("Current IPv4 address: {ipv4}");
+        log::debug!("Current IPv4 address: {ipv4}");
     }
     if let Some(ipv6) = &ipv6 {
-        log::info!("Current IPv6 address: {ipv6}");
+        log::debug!("Current IPv6 address: {ipv6}");
     }
 
     if args.ipv4 && &ipv4 != last_ipv4 {
         if let Some(ipv4) = &ipv4 {
+            log::info!("New IPv4 address: {ipv4}");
             handle_a_record(args, ipv4, client)
                 .await
                 .context("Failed to update or create A record")?;
@@ -114,6 +115,7 @@ async fn dyndns(
 
     if args.ipv6 && &ipv6 != last_ipv6 {
         if let Some(ipv6) = &ipv6 {
+            log::info!("New IPv6 address: {ipv6}");
             handle_aaaa_record(args, ipv6, client)
                 .await
                 .context("Failed to update or create AAAA record")?;
