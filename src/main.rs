@@ -14,6 +14,7 @@ mod ip;
 
 #[derive(Parser)]
 #[command(
+    version,
     long_about = "Update DNS record with the current IP addresses on DigitalOcean Domains. Supply the DigitalOcean API token via the environment variable DIGITALOCEAN_TOKEN."
 )]
 struct Args {
