@@ -94,7 +94,9 @@ async fn dyndns(
     last_ipv4: &mut Option<Ipv4Addr>,
     last_ipv6: &mut Option<Ipv6Addr>,
 ) -> Result<()> {
-    let (ipv4, ipv6) = get_ips().await.context("Failed to get IP addresses")?;
+    let (ipv4, ipv6) = get_ips(args.ipv4, args.ipv6)
+        .await
+        .context("Failed to get IP addresses")?;
     if let Some(ipv4) = &ipv4 {
         log::debug!("Current IPv4 address: {ipv4}");
     }
