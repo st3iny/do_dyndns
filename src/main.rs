@@ -102,6 +102,13 @@ async fn dyndns(
         log::debug!("Current IPv6 address: {ipv6}");
     }
 
+    if args.ipv4 && ipv4.is_none() {
+        bail!("No IPv4 address found");
+    }
+    if args.ipv6 && ipv6.is_none() {
+        bail!("No IPv6 address found");
+    }
+
     if args.ipv4 && &ipv4 != last_ipv4 {
         if let Some(ipv4) = &ipv4 {
             log::info!("New IPv4 address: {ipv4}");
