@@ -67,3 +67,24 @@ Configure the log level using the `RUST_LOG` environment variable. Available log
 
 More information about the `RUST_LOG` environment variable is available
 [here](https://docs.rs/env_logger/latest/env_logger/#enabling-logging).
+
+## Systemd Service
+
+A simple systemd unit to run do_dyndns as a system daemon.
+Do not forget to add your actual API key and adjust the permissions of this file accordingly.
+
+```
+[Unit]
+Description=Update dns records for my-domain.com
+
+[Service]
+Type=simple
+ExecStart=do_dyndns --ipv4 my-domain.com
+Environment=DIGITALOCEAN_TOKEN=dop_v1_secret
+# Optionally increase the verbosity level a bit for debugging
+Environment=RUST_LOG=do_dyndns=debug
+DynamicUser=true
+
+[Install]
+WantedBy=multi-user.target
+```
