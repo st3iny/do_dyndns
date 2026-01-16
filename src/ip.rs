@@ -7,7 +7,10 @@ use std::{
 use anyhow::{Context, Result};
 use reqwest::{Client, IntoUrl};
 
-static PROVIDERS: [&str; 2] = ["https://ifconfig.me", "https://ifconfig.co"];
+const PROVIDERS: [&str; 2] = ["https://ifconfig.me", "https://ifconfig.co"];
+
+// Need to spoof the user agent to make the providers return a plain response with IP addresses
+const USER_AGENT: &str = "curl/8.17.0";
 
 pub async fn get_ips(
     get_ipv4: bool,
@@ -19,11 +22,13 @@ pub async fn get_ips(
     let ipv4_client = reqwest::Client::builder()
         .timeout(Duration::from_secs(10))
         .local_address(IpAddr::V4(Ipv4Addr::UNSPECIFIED))
+        .user_agent(USER_AGENT)
         .build()
         .expect("Failed to build IPv4 client");
     let ipv6_client = reqwest::Client::builder()
         .timeout(Duration::from_secs(10))
         .local_address(IpAddr::V6(Ipv6Addr::UNSPECIFIED))
+        .user_agent(USER_AGENT)
         .build()
         .expect("Failed to build IPv6 client");
 
@@ -87,7 +92,7 @@ mod test {
     async fn test_get_ips() {
         setup();
         let (ipv4, ipv6) = get_ips(true, true).await.unwrap();
-        println!("ipv4: {:?}", ipv4.unwrap());
-        println!("ipv6: {:?}", ipv6.unwrap());
+        ipv4.expect("It to resolve an IPv4 address!");
+        ipv6.expect("It to resolve an IPv6 address!");
     }
 }
